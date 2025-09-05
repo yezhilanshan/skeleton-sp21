@@ -5,7 +5,7 @@ import java.util.Observable;
 
 
 /** The state of a game of 2048.
- *  @author TODO: YOUR NAME HERE
+ *  @author Yin Zexuan
  */
 public class Model extends Observable {
     /** Current contents of the board. */
@@ -113,7 +113,44 @@ public class Model extends Observable {
         // TODO: Modify this.board (and perhaps this.score) to account
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
-
+        // 先转换视角到用户移动的方向
+        board.setViewingPerspective(side);
+        int size = size();
+        // 大循环遍历每一列，小循环遍历每一行
+        for(int col = 0; col < size; col ++) {
+            // 记录要移动到当前列的哪一行（初始化为最顶端，因为一旦在当前位置发生合并就需要向下移动）
+            int position = size - 1;
+            for(int row = size - 1; row >= 0; row --) {
+                Tile cur = board.tile(col, row);
+                // 如果遍历到的位置是空格，直接跳过，只处理有值的位置
+                if(cur != null) {
+                    // 如果遍历到的行与要移动的行相同，说明是同一个位置，直接跳过
+                    if(position == row) {
+                        continue;
+                    }
+                    changed = true;
+                    Tile target = board.tile(col, position);
+                    if(target != null) {
+                        // 如果目标位置有值，先检查与遍历值是否相同（合并）
+                        if(target.value() == cur.value()) {
+                            score += target.value() * 2;
+                            board.move(col, position, cur);
+                            position --;
+                        } else {
+                            // 如果不相同，说明不能移动到目标位置，使position--,再移动
+                            position --;
+                            // 这里可能未发生移动，因为position--后可能就是当前遍历到的行
+                            board.move(col, position, cur);
+                        }
+                    } else {
+                        // 如果目标位置为空直接移动即可，因为position是从上到下的，因此这次移动后
+                        // 就是本次的最终位置
+                        board.move(col, position, cur);
+                    }
+                }
+            }
+        }
+        board.setViewingPerspective(Side.NORTH);
         checkGameOver();
         if (changed) {
             setChanged();
@@ -138,6 +175,13 @@ public class Model extends Observable {
      * */
     public static boolean emptySpaceExists(Board b) {
         // TODO: Fill in this function.
+        for(int i = 0; i < b.size(); ++ i) {
+            for(int j = 0; j < b.size(); ++ j) {
+                if(b.tile(i, j) == null) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -148,6 +192,13 @@ public class Model extends Observable {
      */
     public static boolean maxTileExists(Board b) {
         // TODO: Fill in this function.
+        for(int i = 0; i < b.size(); ++ i) {
+            for(int j = 0; j < b.size(); ++ j) {
+                if(b.tile(i, j) != null && b.tile(i, j).value() >= MAX_PIECE) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -159,6 +210,25 @@ public class Model extends Observable {
      */
     public static boolean atLeastOneMoveExists(Board b) {
         // TODO: Fill in this function.
+        if(emptySpaceExists(b)) {
+            return true;
+        } else {
+            for(int i = 0; i < b.size(); ++ i) {
+                int lastRowVal = 0, lastColVal = 0;
+                for(int j = 0; j < b.size(); ++ j) {
+                    int curRowVal = b.tile(i, j).value();
+                    int curColVal = b.tile(j, i).value();
+                    if(curRowVal == lastRowVal) {
+                        return true;
+                    }
+                    if(curColVal == lastColVal) {
+                        return true;
+                    }
+                    lastRowVal = curRowVal;
+                    lastColVal = curColVal;
+                }
+            }
+        }
         return false;
     }
 
